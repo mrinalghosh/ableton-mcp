@@ -16,8 +16,8 @@ def get_session_overview() -> dict[str, Any]:
 
     tracks = []
     for i in range(int(num_tracks)):
-        name = osc.query("/live/track/get/name", i)[0]
-        is_midi = osc.query("/live/track/get/has_midi_input", i)[0]
+        name = osc.query("/live/track/get/name", i)[1]
+        is_midi = osc.query("/live/track/get/has_midi_input", i)[1]
         tracks.append(
             {"index": i, "name": name, "type": "midi" if is_midi else "audio"}
         )
@@ -31,19 +31,19 @@ def get_session_overview() -> dict[str, Any]:
 def get_track_detail(track: int) -> dict[str, Any]:
     """Devices, clip slots, and routing for one track."""
     osc = get_client()
-    name = osc.query("/live/track/get/name", track)[0]
-    num_devices = osc.query("/live/track/get/num_devices", track)[0]
+    name = osc.query("/live/track/get/name", track)[1]
+    num_devices = osc.query("/live/track/get/num_devices", track)[1]
     devices = []
     for d in range(int(num_devices)):
-        dname = osc.query("/live/device/get/name", track, d)[0]
+        dname = osc.query("/live/device/get/name", track, d)[2]
         devices.append({"index": d, "name": dname})
 
-    num_clips = osc.query("/live/track/get/num_clip_slots", track)[0]
+    num_clips = osc.query("/live/track/get/num_clip_slots", track)[1]
     clips = []
     for c in range(int(num_clips)):
-        has_clip = osc.query("/live/clip_slot/get/has_clip", track, c)[0]
+        has_clip = osc.query("/live/clip_slot/get/has_clip", track, c)[2]
         if has_clip:
-            cname = osc.query("/live/clip/get/name", track, c)[0]
+            cname = osc.query("/live/clip/get/name", track, c)[2]
             clips.append({"slot": c, "name": cname})
     return {"name": name, "devices": devices, "clips": clips}
 
@@ -52,6 +52,7 @@ def get_clip_notes(track: int, clip: int) -> list[dict[str, float]]:
     """Notes in a MIDI clip: pitch, start (beats), duration (beats), velocity."""
     osc = get_client()
     raw = osc.query("/live/clip/get/notes", track, clip, timeout=2.0)
+    raw = raw[2:]  # strip echoed (track, clip) prefix
     notes = []
     for i in range(0, len(raw), 5):
         pitch, start, dur, vel, _mute = raw[i : i + 5]

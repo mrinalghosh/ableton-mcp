@@ -71,12 +71,16 @@ def set_time_signature(numerator: int, denominator: int) -> dict:
 def create_track(track_type: str = "midi", name: str | None = None) -> dict:
     """Create a new MIDI or audio track at the end of the set."""
     osc = get_client()
-    if track_type == "midi":
-        osc.send("/live/song/create_midi_track", -1)
-    else:
-        osc.send("/live/song/create_audio_track", -1)
-    # Naming after creation requires knowing the new index — left for v0.1.
-    return {"created": track_type, "named": name}
+    address = (
+        "/live/song/create_midi_track" if track_type == "midi"
+        else "/live/song/create_audio_track"
+    )
+    reply = osc.query(address, -1)
+    # AbletonOSC may echo the requested-position arg before the new index.
+    index = int(reply[-1]) if reply else -1
+    if name and index >= 0:
+        osc.send("/live/track/set/name", index, name)
+    return {"created": track_type, "index": index, "name": name}
 
 
 def fire_clip(track: int, clip: int) -> dict:
