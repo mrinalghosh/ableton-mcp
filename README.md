@@ -6,7 +6,7 @@ Designed for musicians who want a pair-programming-style collaborator: Claude ca
 
 ## Status
 
-**v0** — scaffold. Tools defined and wired to AbletonOSC; not yet end-to-end tested against a live Ableton instance.
+**v0.1** — smoke-tested end-to-end against Live 12 with AbletonOSC. All read/write tools verified; track naming on create works.
 
 ## How it works
 
@@ -14,7 +14,7 @@ Designed for musicians who want a pair-programming-style collaborator: Claude ca
 Claude  ←→  MCP (this repo, stdio)  ←→  python-osc  ←→  AbletonOSC remote script  ←→  Ableton Live 12
 ```
 
-## Tool surface (v0)
+## Tool surface (v0.1)
 
 **Read** — `get_session_overview`, `get_track_detail`, `get_clip_notes`, `get_transport_state`, `get_selected`
 
@@ -63,9 +63,10 @@ The system prompt asks Claude to **write first, then explain**: when you ask for
 
 ## Roadmap
 
-- v0.1: end-to-end smoke test against real Live instance; name tracks after creation
-- v0.2: device parameter control; automation lanes
-- v0.3: scale/key inference; song structure suggestions
+- ~~v0.1: end-to-end smoke test against real Live instance; name tracks after creation~~ ✅
+- v0.2: device parameter control (`get_device_parameters`, `set_device_parameter`); browse Live's Library and load instruments/effects onto tracks
+- v0.3: clip automation lanes (time-varying parameter envelopes inside a clip)
+- v0.4: scale/key inference; song structure suggestions
 
 ## License
 
