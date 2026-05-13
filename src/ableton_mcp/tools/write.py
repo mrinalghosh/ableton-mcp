@@ -150,16 +150,17 @@ def set_device_parameter(
     }
 
 
-_BROWSER_CATEGORIES = ("instruments", "drums", "sounds")
+_BROWSER_CATEGORIES = ("instruments", "drums", "sounds", "audio_effects", "midi_effects")
 
 
-def load_instrument(track: int, category: str, path: list[str]) -> dict:
+def load_device(track: int, category: str, path: list[str]) -> dict:
     """Load a device from Live's browser onto a track.
 
-    category: one of "instruments", "drums", "sounds".
+    category: one of "instruments", "drums", "sounds", "audio_effects", "midi_effects".
     path: full path of folder names ending at a loadable leaf, e.g.
-        ["Operator", "Bass", "Sub Bass.adv"]. Use list_browser to discover.
-    The target track is selected before loading; the device is appended.
+        ["Operator", "Bass", "Sub Bass.adv"] or ["EQ Eight"]. Use list_browser
+        to discover. The target track is selected before loading; the device
+        is appended to the end of its device chain.
     """
     if category not in _BROWSER_CATEGORIES:
         raise ValueError(

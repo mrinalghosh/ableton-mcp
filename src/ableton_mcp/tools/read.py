@@ -108,16 +108,16 @@ def get_transport_state() -> dict[str, Any]:
     return {"is_playing": bool(playing), "current_beat": float(beat), "loop": bool(loop)}
 
 
-_BROWSER_CATEGORIES = ("instruments", "drums", "sounds")
+_BROWSER_CATEGORIES = ("instruments", "drums", "sounds", "audio_effects", "midi_effects")
 
 
 def list_browser(category: str, path: list[str] | None = None) -> dict[str, Any]:
     """List children of a Live browser folder.
 
-    category: one of "instruments", "drums", "sounds".
+    category: one of "instruments", "drums", "sounds", "audio_effects", "midi_effects".
     path: list of folder names to descend into, e.g. ["Operator", "Bass"].
     Returns each child's name, whether it's a folder, and whether it can be
-    loaded onto a track via load_instrument.
+    loaded onto a track via load_device.
     """
     if category not in _BROWSER_CATEGORIES:
         raise ValueError(

@@ -29,10 +29,11 @@ mcp.tool(
 )(read.get_device_parameters)
 mcp.tool(
     description=(
-        "Browse Live's instrument/drum/sound library. category is one of "
-        "'instruments', 'drums', 'sounds'. path is a list of folder names to "
-        "descend into (empty for the root). Returns children with is_folder "
-        "and is_loadable flags. Use to discover what to pass to load_instrument."
+        "Browse Live's device library. category is one of 'instruments', "
+        "'drums', 'sounds', 'audio_effects', 'midi_effects'. path is a list "
+        "of folder names to descend into (empty for the root). Returns "
+        "children with is_folder, is_loadable, and has_children flags. Use "
+        "to discover what to pass to load_device."
     )
 )(read.list_browser)
 
@@ -46,11 +47,12 @@ mcp.tool(description="Set song time signature.")(write.set_time_signature)
 mcp.tool(description="Create a new MIDI or audio track at end of set.")(write.create_track)
 mcp.tool(
     description=(
-        "Load a device from Live's browser onto a track. Pass the full path of "
-        "folder names ending at a loadable item (use list_browser to discover). "
-        "The track is selected and the device is appended to its device chain."
+        "Load a device (instrument, audio effect, or MIDI effect) from Live's "
+        "browser onto a track. Pass the full path of folder names ending at a "
+        "loadable item (use list_browser to discover). The track is selected "
+        "and the device is appended to its device chain."
     )
-)(write.load_instrument)
+)(write.load_device)
 mcp.tool(
     description="Start playing a clip. ASK THE USER FIRST before calling — surprise playback is disruptive."
 )(write.fire_clip)

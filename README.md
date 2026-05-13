@@ -18,13 +18,13 @@ Claude  ←→  MCP (this repo, stdio)  ←→  python-osc  ←→  AbletonOSC r
 
 **Read** — `get_session_overview`, `get_track_detail`, `get_clip_notes`, `get_transport_state`, `get_selected`, `get_device_parameters`, `list_browser`
 
-**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_instrument`, `set_device_parameter`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo`, `fire_clip` / `stop_clip` (gated — Claude must ask the user)
+**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo`, `fire_clip` / `stop_clip` (gated — Claude must ask the user)
 
 ## Setup
 
 ### 1. Install AbletonOSC in Live
 
-This repo bundles a [forked AbletonOSC](https://github.com/mrinalghosh/AbletonOSC) as a submodule with a `BrowserHandler` added for `list_browser` / `load_instrument`. Clone with submodules and symlink into Live's MIDI Remote Scripts folder:
+This repo bundles a [forked AbletonOSC](https://github.com/mrinalghosh/AbletonOSC) as a submodule with a `BrowserHandler` added for `list_browser` / `load_device`. Clone with submodules and symlink into Live's MIDI Remote Scripts folder:
 
 ```bash
 git clone --recurse-submodules https://github.com/mrinalghosh/ableton-mcp.git
