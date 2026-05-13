@@ -150,6 +150,31 @@ def set_device_parameter(
     }
 
 
+_BROWSER_CATEGORIES = ("instruments", "drums", "sounds")
+
+
+def load_instrument(track: int, category: str, path: list[str]) -> dict:
+    """Load a device from Live's browser onto a track.
+
+    category: one of "instruments", "drums", "sounds".
+    path: full path of folder names ending at a loadable leaf, e.g.
+        ["Operator", "Bass", "Sub Bass.adv"]. Use list_browser to discover.
+    The target track is selected before loading; the device is appended.
+    """
+    if category not in _BROWSER_CATEGORIES:
+        raise ValueError(
+            f"category must be one of {_BROWSER_CATEGORIES}, got {category!r}"
+        )
+    if not path:
+        raise ValueError("path must name at least one browser item")
+    osc = get_client()
+    reply = osc.query("/live/browser/load", int(track), category, *path, timeout=3.0)
+    _track, ok, detail = reply[0], reply[1], reply[2]
+    if not int(ok):
+        raise RuntimeError(f"load_item failed: {detail}")
+    return {"track": int(_track), "category": category, "path": path, "loaded": str(detail)}
+
+
 def fire_clip(track: int, clip: int) -> dict:
     """Start playing a clip. The system prompt requires Claude to confirm with the user first."""
     get_client().send("/live/clip/fire", track, clip)

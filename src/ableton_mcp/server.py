@@ -27,6 +27,14 @@ mcp.tool(
 mcp.tool(
     description="List a device's parameters with current value, min, and max. Use before set_device_parameter to discover names."
 )(read.get_device_parameters)
+mcp.tool(
+    description=(
+        "Browse Live's instrument/drum/sound library. category is one of "
+        "'instruments', 'drums', 'sounds'. path is a list of folder names to "
+        "descend into (empty for the root). Returns children with is_folder "
+        "and is_loadable flags. Use to discover what to pass to load_instrument."
+    )
+)(read.list_browser)
 
 # --- Write tools ---
 mcp.tool(
@@ -36,6 +44,13 @@ mcp.tool(description="Replace all notes in an existing MIDI clip.")(write.modify
 mcp.tool(description="Set song tempo (BPM).")(write.set_tempo)
 mcp.tool(description="Set song time signature.")(write.set_time_signature)
 mcp.tool(description="Create a new MIDI or audio track at end of set.")(write.create_track)
+mcp.tool(
+    description=(
+        "Load a device from Live's browser onto a track. Pass the full path of "
+        "folder names ending at a loadable item (use list_browser to discover). "
+        "The track is selected and the device is appended to its device chain."
+    )
+)(write.load_instrument)
 mcp.tool(
     description="Start playing a clip. ASK THE USER FIRST before calling — surprise playback is disruptive."
 )(write.fire_clip)

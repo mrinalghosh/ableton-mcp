@@ -108,6 +108,40 @@ def get_transport_state() -> dict[str, Any]:
     return {"is_playing": bool(playing), "current_beat": float(beat), "loop": bool(loop)}
 
 
+_BROWSER_CATEGORIES = ("instruments", "drums", "sounds")
+
+
+def list_browser(category: str, path: list[str] | None = None) -> dict[str, Any]:
+    """List children of a Live browser folder.
+
+    category: one of "instruments", "drums", "sounds".
+    path: list of folder names to descend into, e.g. ["Operator", "Bass"].
+    Returns each child's name, whether it's a folder, and whether it can be
+    loaded onto a track via load_instrument.
+    """
+    if category not in _BROWSER_CATEGORIES:
+        raise ValueError(
+            f"category must be one of {_BROWSER_CATEGORIES}, got {category!r}"
+        )
+    path = path or []
+    osc = get_client()
+    reply = osc.query("/live/browser/list", category, *path, timeout=2.0)
+    # AbletonOSC echoes (category, *path) before the payload.
+    payload = reply[1 + len(path):]
+    children = []
+    for i in range(0, len(payload), 4):
+        name, is_folder, is_loadable, has_children = payload[i : i + 4]
+        children.append(
+            {
+                "name": str(name),
+                "is_folder": bool(int(is_folder)),
+                "is_loadable": bool(int(is_loadable)),
+                "has_children": bool(int(has_children)),
+            }
+        )
+    return {"category": category, "path": path, "children": children}
+
+
 def get_selected() -> dict[str, Any]:
     """What the user currently has selected in Live. The grounding for 'explain this'."""
     osc = get_client()
