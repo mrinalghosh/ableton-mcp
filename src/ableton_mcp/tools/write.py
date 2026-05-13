@@ -75,10 +75,12 @@ def create_track(track_type: str = "midi", name: str | None = None) -> dict:
         "/live/song/create_midi_track" if track_type == "midi"
         else "/live/song/create_audio_track"
     )
-    reply = osc.query(address, -1)
-    # AbletonOSC may echo the requested-position arg before the new index.
-    index = int(reply[-1]) if reply else -1
-    if name and index >= 0:
+    # AbletonOSC's create_*_track is fire-and-forget. Capture the new index
+    # by reading num_tracks before the call — appending at -1 puts the new
+    # track at that position.
+    index = int(osc.query("/live/song/get/num_tracks")[0])
+    osc.send(address, -1)
+    if name:
         osc.send("/live/track/set/name", index, name)
     return {"created": track_type, "index": index, "name": name}
 
