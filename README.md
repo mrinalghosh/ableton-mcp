@@ -59,6 +59,10 @@ Add to your Claude Code / Claude Desktop MCP config:
 
 The system prompt asks Claude to **write first, then explain**: when you ask for a musical idea, Claude generates the MIDI directly into Live, then narrates the choices (key, rhythm, voice leading). When you ask "what is this?", Claude grounds itself with `get_selected` before answering.
 
+## Known quirks
+
+- **Track/clip names come back with hyphens instead of spaces.** AbletonOSC normalizes whitespace in string responses, so a track displayed in Live as `1 MIDI` is reported as `1-MIDI`. We pass this through unchanged — reversing it would corrupt names the user actually wrote with hyphens.
+
 ## Roadmap
 
 - v0.1: end-to-end smoke test against real Live instance; name tracks after creation

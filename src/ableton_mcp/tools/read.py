@@ -74,9 +74,14 @@ def get_transport_state() -> dict[str, Any]:
 def get_selected() -> dict[str, Any]:
     """What the user currently has selected in Live. The grounding for 'explain this'."""
     osc = get_client()
-    track = osc.query("/live/view/get/selected_track")[0]
+    # AbletonOSC doesn't reply for return/main track selections, so treat
+    # a timeout as "selection isn't a regular track" rather than an error.
     try:
-        scene = osc.query("/live/view/get/selected_scene")[0]
+        track: int | None = int(osc.query("/live/view/get/selected_track")[0])
+    except TimeoutError:
+        track = None
+    try:
+        scene: int | None = int(osc.query("/live/view/get/selected_scene")[0])
     except TimeoutError:
         scene = None
-    return {"track": int(track), "scene": int(scene) if scene is not None else None}
+    return {"track": track, "scene": scene, "note": None if track is not None else "selection is a return or main track (not addressable via track index)"}
