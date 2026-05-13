@@ -85,6 +85,71 @@ def create_track(track_type: str = "midi", name: str | None = None) -> dict:
     return {"created": track_type, "index": index, "name": name}
 
 
+def set_track_volume(track: int, volume: float) -> dict:
+    """Set track volume. 0.0 = -inf dB, 0.85 = unity (0 dB), 1.0 = +6 dB."""
+    clamped = max(0.0, min(1.0, float(volume)))
+    get_client().send("/live/track/set/volume", track, clamped)
+    return {"track": track, "volume": clamped, "clamped": clamped != float(volume)}
+
+
+def set_track_panning(track: int, panning: float) -> dict:
+    """Set track pan. -1.0 = hard left, 0.0 = center, 1.0 = hard right."""
+    clamped = max(-1.0, min(1.0, float(panning)))
+    get_client().send("/live/track/set/panning", track, clamped)
+    return {"track": track, "panning": clamped, "clamped": clamped != float(panning)}
+
+
+def set_track_mute(track: int, mute: bool) -> dict:
+    get_client().send("/live/track/set/mute", track, 1 if mute else 0)
+    return {"track": track, "mute": bool(mute)}
+
+
+def set_track_solo(track: int, solo: bool) -> dict:
+    get_client().send("/live/track/set/solo", track, 1 if solo else 0)
+    return {"track": track, "solo": bool(solo)}
+
+
+def set_device_parameter(
+    track: int,
+    device: int,
+    parameter: int | str,
+    value: float,
+) -> dict:
+    """Set one parameter on a device. `parameter` may be an index or a name.
+
+    Names are preferred — parameter indices aren't guaranteed stable across
+    plugin reloads. Value is clamped to the parameter's [min, max] range.
+    """
+    osc = get_client()
+    names = osc.query("/live/device/get/parameters/name", track, device)[2:]
+    if isinstance(parameter, str):
+        try:
+            index = next(i for i, n in enumerate(names) if str(n) == parameter)
+        except StopIteration as e:
+            raise ValueError(
+                f"No parameter named {parameter!r} on track {track} device {device}. "
+                f"Available: {[str(n) for n in names]}"
+            ) from e
+    else:
+        index = int(parameter)
+        if index < 0 or index >= len(names):
+            raise ValueError(
+                f"Parameter index {index} out of range; device has {len(names)} parameters"
+            )
+
+    mins = osc.query("/live/device/get/parameters/min", track, device)[2:]
+    maxes = osc.query("/live/device/get/parameters/max", track, device)[2:]
+    clamped = max(float(mins[index]), min(float(maxes[index]), float(value)))
+    osc.send("/live/device/set/parameter/value", track, device, index, clamped)
+    return {
+        "track": track,
+        "device": device,
+        "parameter": {"index": index, "name": str(names[index])},
+        "value": clamped,
+        "clamped": clamped != float(value),
+    }
+
+
 def fire_clip(track: int, clip: int) -> dict:
     """Start playing a clip. The system prompt requires Claude to confirm with the user first."""
     get_client().send("/live/clip/fire", track, clip)

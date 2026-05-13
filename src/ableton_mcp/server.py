@@ -24,6 +24,9 @@ mcp.tool(description="Transport state: playing, current beat, loop.")(
 mcp.tool(
     description="What the user currently has selected in Live. Call this first when the user asks 'what is this?'."
 )(read.get_selected)
+mcp.tool(
+    description="List a device's parameters with current value, min, and max. Use before set_device_parameter to discover names."
+)(read.get_device_parameters)
 
 # --- Write tools ---
 mcp.tool(
@@ -37,6 +40,17 @@ mcp.tool(
     description="Start playing a clip. ASK THE USER FIRST before calling — surprise playback is disruptive."
 )(write.fire_clip)
 mcp.tool(description="Stop a clip.")(write.stop_clip)
+mcp.tool(
+    description="Set one parameter on a device. Prefer addressing by name. Value is clamped to the parameter range."
+)(write.set_device_parameter)
+mcp.tool(
+    description="Set track volume. 0.0 silence, 0.85 unity (0 dB), 1.0 maximum (+6 dB). Clamped to [0, 1]."
+)(write.set_track_volume)
+mcp.tool(
+    description="Set track pan. -1.0 hard left, 0.0 center, 1.0 hard right. Clamped to [-1, 1]."
+)(write.set_track_panning)
+mcp.tool(description="Mute or unmute a track.")(write.set_track_mute)
+mcp.tool(description="Solo or unsolo a track.")(write.set_track_solo)
 
 
 def main() -> None:

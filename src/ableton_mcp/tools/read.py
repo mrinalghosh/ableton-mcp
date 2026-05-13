@@ -29,9 +29,13 @@ def get_session_overview() -> dict[str, Any]:
 
 
 def get_track_detail(track: int) -> dict[str, Any]:
-    """Devices, clip slots, and routing for one track."""
+    """Devices, clip slots, mixer state, and routing for one track."""
     osc = get_client()
     name = osc.query("/live/track/get/name", track)[1]
+    volume = osc.query("/live/track/get/volume", track)[1]
+    panning = osc.query("/live/track/get/panning", track)[1]
+    mute = osc.query("/live/track/get/mute", track)[1]
+    solo = osc.query("/live/track/get/solo", track)[1]
     num_devices = osc.query("/live/track/get/num_devices", track)[1]
     devices = []
     for d in range(int(num_devices)):
@@ -46,7 +50,39 @@ def get_track_detail(track: int) -> dict[str, Any]:
         if has_clip:
             cname = osc.query("/live/clip/get/name", track, c)[2]
             clips.append({"slot": c, "name": cname})
-    return {"name": name, "devices": devices, "clips": clips}
+    return {
+        "name": name,
+        "mixer": {
+            "volume": float(volume),
+            "panning": float(panning),
+            "mute": bool(mute),
+            "solo": bool(solo),
+        },
+        "devices": devices,
+        "clips": clips,
+    }
+
+
+def get_device_parameters(track: int, device: int) -> list[dict[str, Any]]:
+    """List a device's parameters with current value and range.
+
+    Use parameter `index` (or `name`) to address one in set_device_parameter.
+    """
+    osc = get_client()
+    names = osc.query("/live/device/get/parameters/name", track, device)[2:]
+    values = osc.query("/live/device/get/parameters/value", track, device)[2:]
+    mins = osc.query("/live/device/get/parameters/min", track, device)[2:]
+    maxes = osc.query("/live/device/get/parameters/max", track, device)[2:]
+    return [
+        {
+            "index": i,
+            "name": str(name),
+            "value": float(val),
+            "min": float(mn),
+            "max": float(mx),
+        }
+        for i, (name, val, mn, mx) in enumerate(zip(names, values, mins, maxes))
+    ]
 
 
 def get_clip_notes(track: int, clip: int) -> list[dict[str, float]]:

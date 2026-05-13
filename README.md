@@ -64,9 +64,10 @@ The system prompt asks Claude to **write first, then explain**: when you ask for
 ## Roadmap
 
 - ~~v0.1: end-to-end smoke test against real Live instance; name tracks after creation~~ ✅
-- v0.2: device parameter control (`get_device_parameters`, `set_device_parameter`); browse Live's Library and load instruments/effects onto tracks
-- v0.3: clip automation lanes (time-varying parameter envelopes inside a clip)
-- v0.4: scale/key inference; song structure suggestions
+- v0.2: device parameter control (`get_device_parameters`, `set_device_parameter`); per-track mixer (volume, pan, mute, solo)
+- v0.3: browse Live's Library and load instruments/effects onto tracks (requires extending AbletonOSC — it doesn't expose `application.browser`)
+- v0.4: clip automation lanes (time-varying parameter envelopes inside a clip)
+- v0.5: scale/key inference; song structure suggestions
 
 ## License
 
