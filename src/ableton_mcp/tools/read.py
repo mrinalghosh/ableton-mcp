@@ -38,7 +38,8 @@ def get_track_detail(track: int) -> dict[str, Any]:
         dname = osc.query("/live/device/get/name", track, d)[2]
         devices.append({"index": d, "name": dname})
 
-    num_clips = osc.query("/live/track/get/num_clip_slots", track)[1]
+    # In session view, clip slot count per track == number of scenes.
+    num_clips = osc.query("/live/song/get/num_scenes")[0]
     clips = []
     for c in range(int(num_clips)):
         has_clip = osc.query("/live/clip_slot/get/has_clip", track, c)[2]
