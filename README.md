@@ -20,8 +20,6 @@ Claude  ←→  MCP (this repo, stdio)  ←→  python-osc  ←→  AbletonOSC r
 
 **Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `fire_clip` / `stop_clip` (gated — Claude must ask the user)
 
-**Guide** — `explain_shortcut`
-
 ## Setup
 
 ### 1. Install AbletonOSC in Live

@@ -1,10 +1,10 @@
-"""MCP server entrypoint. Registers read/write/guide tools over stdio."""
+"""MCP server entrypoint. Registers read/write tools over stdio."""
 from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
 from .prompts import SYSTEM_PROMPT
-from .tools import guide, read, write
+from .tools import read, write
 
 mcp = FastMCP("ableton-mcp", instructions=SYSTEM_PROMPT)
 
@@ -37,11 +37,6 @@ mcp.tool(
     description="Start playing a clip. ASK THE USER FIRST before calling — surprise playback is disruptive."
 )(write.fire_clip)
 mcp.tool(description="Stop a clip.")(write.stop_clip)
-
-# --- Guidance ---
-mcp.tool(description="Look up an Ableton Live keyboard shortcut by action name.")(
-    guide.explain_shortcut
-)
 
 
 def main() -> None:
