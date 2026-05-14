@@ -435,6 +435,70 @@ def set_track_arm(track: int, arm: bool) -> dict:
     return {"track": int(track), "arm": bool(arm)}
 
 
+def _parse_color(color: str | int) -> int:
+    """Accept '#RRGGBB', 'RRGGBB', or a raw int; return Live's color int."""
+    if isinstance(color, int):
+        return color
+    s = str(color).strip().lstrip("#")
+    if len(s) != 6:
+        raise ValueError(f"color must be 6-digit hex like '#FF8800', got {color!r}")
+    try:
+        return int(s, 16)
+    except ValueError as e:
+        raise ValueError(f"color {color!r} is not valid hex") from e
+
+
+def create_scene(index: int = -1, name: str | None = None) -> dict:
+    """Create a scene. Default -1 appends at the end."""
+    osc = get_client()
+    before = int(osc.query("/live/song/get/num_scenes")[0])
+    osc.send("/live/song/create_scene", int(index))
+    new_index = before if index == -1 else int(index)
+    if name:
+        osc.send("/live/scene/set/name", new_index, str(name))
+    return {"created_scene": new_index, "name": name}
+
+
+def delete_scene(scene: int) -> dict:
+    get_client().send("/live/song/delete_scene", int(scene))
+    return {"deleted_scene": int(scene)}
+
+
+def duplicate_scene(scene: int) -> dict:
+    """Duplicate a scene. Live inserts the copy directly after the source."""
+    get_client().send("/live/song/duplicate_scene", int(scene))
+    return {"duplicated_scene": int(scene), "new_index": int(scene) + 1}
+
+
+def rename_scene(scene: int, name: str) -> dict:
+    get_client().send("/live/scene/set/name", int(scene), str(name))
+    return {"scene": int(scene), "name": str(name)}
+
+
+def fire_scene(scene: int) -> dict:
+    """Fire a scene (plays every clip in that row). Gated — Claude must ask the user first."""
+    get_client().send("/live/scene/fire", int(scene))
+    return {"fired_scene": int(scene)}
+
+
+def set_scene_color(scene: int, color: str | int) -> dict:
+    """Set a scene's color. `color` is a hex string like '#FF8800'."""
+    rgb = _parse_color(color)
+    get_client().send("/live/scene/set/color", int(scene), rgb)
+    return {"scene": int(scene), "color": f"#{rgb:06X}"}
+
+
+def set_clip_color(track: int, clip: int, color: str | int) -> dict:
+    """Set a clip's color. `color` is a hex string like '#FF8800'.
+
+    Useful for visually grouping variants — e.g. tint all verse clips one
+    color and all chorus clips another so the session view reads at a glance.
+    """
+    rgb = _parse_color(color)
+    get_client().send("/live/clip/set/color", int(track), int(clip), rgb)
+    return {"track": int(track), "clip": int(clip), "color": f"#{rgb:06X}"}
+
+
 def capture_midi() -> dict:
     """Capture recently played MIDI into a new clip on the armed track.
 

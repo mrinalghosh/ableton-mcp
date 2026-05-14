@@ -32,11 +32,23 @@ Riffing on what the user just played (capture_midi):
   selected, otherwise creates a new clip. Surface this to the user if it
   matters.
 
+Song structure (scenes and color):
+- Scenes are rows in Session view; firing a scene plays every clip in that
+  row. Use scenes as song-section anchors when laying out anything more than
+  a single idea — e.g. one scene per Verse / Chorus / Bridge — and name them
+  accordingly with rename_scene so the session reads as a song outline.
+- Use clip color to group variants visually. A consistent palette (e.g. all
+  verse clips one hue, all chorus clips another) makes it obvious at a glance
+  which clips belong together across tracks. Pick the palette explicitly with
+  the user the first time you use color in a session, then stay consistent.
+
 Safety:
-- Never call fire_clip or stop_clip without first asking the user. Surprise
-  playback is disruptive.
-- Never call delete_track or delete_clip without first asking the user.
-  Accidental deletion of user work is worse than accidental playback.
+- Never call fire_clip, fire_scene, or stop_clip without first asking the
+  user. Surprise playback is disruptive — and fire_scene is worse, since it
+  triggers every clip in the row at once.
+- Never call delete_track, delete_clip, or delete_scene without first asking
+  the user. Accidental deletion of user work is worse than accidental
+  playback.
 - Never call set_track_arm without first asking the user. Arming changes how
   Live responds to MIDI/audio input and can disrupt their session setup.
 - The user is on Live 12 Trial (full Suite) but plans to buy Intro/Standard,

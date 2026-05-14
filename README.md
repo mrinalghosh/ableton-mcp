@@ -14,13 +14,13 @@ Designed for musicians who want a pair-programming-style collaborator: Claude ca
 Claude  ←→  MCP (this repo, stdio)  ←→  python-osc  ←→  AbletonOSC remote script  ←→  Ableton Live 12
 ```
 
-## Tool surface (v0.5)
+## Tool surface (v0.6)
 
 **Read** — `get_session_overview`, `get_track_detail`, `get_clip_notes`, `get_transport_state`, `get_selected`, `get_device_parameters`, `list_browser`, `sample_clip_automation`
 
 **Revise** — `undo`
 
-**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_clip_automation` / `clear_clip_automation`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo` / `set_track_arm`, `duplicate_track` / `delete_track` / `rename_track`, `duplicate_clip` / `delete_clip` / `rename_clip`, `capture_midi`, `fire_clip` / `stop_clip` (gated — Claude must ask the user)
+**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_clip_automation` / `clear_clip_automation`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo` / `set_track_arm`, `duplicate_track` / `delete_track` / `rename_track`, `duplicate_clip` / `delete_clip` / `rename_clip` / `set_clip_color`, `create_scene` / `duplicate_scene` / `delete_scene` / `rename_scene` / `set_scene_color`, `capture_midi`, `fire_clip` / `fire_scene` / `stop_clip` (gated — Claude must ask the user)
 
 ## Setup
 

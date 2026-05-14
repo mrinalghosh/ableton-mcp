@@ -21,10 +21,16 @@ def get_session_overview() -> dict[str, Any]:
         tracks.append(
             {"index": i, "name": name, "type": "midi" if is_midi else "audio"}
         )
+
+    # Scene names come back as one tuple in index order.
+    scene_names = osc.query("/live/song/get/scenes/name")
+    scenes = [{"index": i, "name": str(n)} for i, n in enumerate(scene_names)]
+
     return {
         "tempo": tempo,
         "time_signature": f"{sig_num}/{sig_den}",
         "tracks": tracks,
+        "scenes": scenes,
     }
 
 

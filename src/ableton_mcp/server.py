@@ -127,6 +127,31 @@ mcp.tool(
         "if the user wants you to riff on what they're about to play."
     )
 )(write.capture_midi)
+mcp.tool(
+    description="Create a scene. Default index=-1 appends at the end; optionally name it on creation."
+)(write.create_scene)
+mcp.tool(description="Delete a scene by index.")(write.delete_scene)
+mcp.tool(
+    description="Duplicate a scene. Live inserts the copy directly after the source."
+)(write.duplicate_scene)
+mcp.tool(description="Rename a scene.")(write.rename_scene)
+mcp.tool(
+    description=(
+        "Fire a scene — plays every clip in that row. ASK THE USER FIRST "
+        "before calling; whole-row playback is even more disruptive than a "
+        "single clip."
+    )
+)(write.fire_scene)
+mcp.tool(
+    description="Set a scene's color. Pass a hex string like '#FF8800'."
+)(write.set_scene_color)
+mcp.tool(
+    description=(
+        "Set a clip's color. Pass a hex string like '#FF8800'. Use to "
+        "visually group variants — e.g. all verse clips one color, all "
+        "chorus clips another."
+    )
+)(write.set_clip_color)
 
 
 def main() -> None:
