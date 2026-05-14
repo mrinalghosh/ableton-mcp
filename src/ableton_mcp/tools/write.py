@@ -198,6 +198,9 @@ def _resolve_parameter(osc, track: int, device: int, parameter: int | str) -> tu
     return index, str(names[index]), float(mins[index]), float(maxes[index])
 
 
+_TAIL_DURATION_BEATS = 1.0
+
+
 def set_clip_automation(
     track: int,
     clip: int,
@@ -207,10 +210,19 @@ def set_clip_automation(
 ) -> dict:
     """Write an automation envelope for a device parameter inside a clip.
 
-    points: list of {time, value} or {time, duration, value}. `time` and
-    `duration` are in beats relative to the clip start. Omitting `duration`
-    (or passing 0) writes a single breakpoint at `time`; a positive duration
-    writes a flat segment holding `value` over [time, time+duration].
+    Each entry in `points` is {time, value} or {time, duration, value}, in
+    beats relative to clip start. Points are sorted by time before writing.
+
+    Live's LOM only supports flat *step* segments — there is no real
+    single-breakpoint primitive (`insert_step(time, 0, value)` is a no-op),
+    and steps are left-exclusive (a step at time=0 doesn't cover t=0
+    exactly). To smooth this over:
+
+    - If a point omits `duration`, it auto-fills to the next point's time
+      (or +1 beat for the final point), so callers can pass {time, value}
+      breakpoints and get a tiled step envelope.
+    - For a smooth ramp, pass many closely spaced breakpoints — Live will
+      render visible stair-steps but they will be small.
 
     Values are clamped to the parameter's [min, max] range. Existing
     automation for this parameter is NOT cleared first — call
@@ -220,13 +232,23 @@ def set_clip_automation(
         raise ValueError("points must contain at least one entry")
     osc = get_client()
     index, name, pmin, pmax = _resolve_parameter(osc, track, device, parameter)
+
+    sorted_points = sorted(points, key=lambda p: float(p["time"]))
     written = []
-    for p in points:
+    for i, p in enumerate(sorted_points):
         t = float(p["time"])
-        d = float(p.get("duration", 0.0))
         v = float(p["value"])
-        if d < 0:
-            raise ValueError(f"duration must be >= 0, got {d}")
+        if "duration" in p:
+            d = float(p["duration"])
+        elif i + 1 < len(sorted_points):
+            d = float(sorted_points[i + 1]["time"]) - t
+        else:
+            d = _TAIL_DURATION_BEATS
+        if d <= 0:
+            raise ValueError(
+                f"duration must be > 0 (insert_step with duration<=0 is a no-op); "
+                f"got {d} for point at time={t}"
+            )
         clamped = max(pmin, min(pmax, v))
         osc.send(
             "/live/clip/automation/insert_step",

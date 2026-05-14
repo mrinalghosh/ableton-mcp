@@ -71,10 +71,12 @@ mcp.tool(description="Solo or unsolo a track.")(write.set_track_solo)
 mcp.tool(
     description=(
         "Write a clip-level automation envelope for a device parameter. "
-        "points is a list of {time, value} or {time, duration, value} entries "
-        "(beats relative to clip start). Existing automation is not cleared "
-        "first — use clear_clip_automation for a fresh start. Values clamped "
-        "to the parameter range."
+        "points is a list of {time, value} or {time, duration, value} "
+        "(beats relative to clip start); when duration is omitted it tiles "
+        "to the next point. Live only supports flat step segments — for a "
+        "smooth ramp, pass many closely spaced breakpoints. Existing "
+        "automation is not cleared first; call clear_clip_automation first "
+        "if you want a fresh start. Values clamped to the parameter range."
     )
 )(write.set_clip_automation)
 mcp.tool(
