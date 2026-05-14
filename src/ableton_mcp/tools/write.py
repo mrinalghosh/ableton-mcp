@@ -8,6 +8,21 @@ from __future__ import annotations
 from ..osc_client import get_client
 
 
+def _require_clip(osc, track: int, clip: int) -> None:
+    """Raise if the given clip slot is empty.
+
+    Most clip-targeted writes (set color, rename, modify notes, automation)
+    are fire-and-forget on the OSC side, so calling them on an empty slot
+    silently no-ops. This precheck turns that into a clear error.
+    """
+    reply = osc.query("/live/clip_slot/get/has_clip", int(track), int(clip))
+    if not int(reply[2]):
+        raise ValueError(
+            f"No clip at track {track} slot {clip}. Create one with "
+            f"create_midi_clip first, or pick a different slot."
+        )
+
+
 def create_midi_clip(
     track: int,
     clip_slot: int,
@@ -39,6 +54,7 @@ def create_midi_clip(
 def modify_clip_notes(track: int, clip: int, notes: list[dict]) -> dict:
     """Replace all notes in an existing MIDI clip."""
     osc = get_client()
+    _require_clip(osc, track, clip)
     osc.send("/live/clip/remove/notes", track, clip)
     flat: list = []
     for n in notes:
@@ -231,6 +247,7 @@ def set_clip_automation(
     if not points:
         raise ValueError("points must contain at least one entry")
     osc = get_client()
+    _require_clip(osc, track, clip)
     index, name, pmin, pmax = _resolve_parameter(osc, track, device, parameter)
 
     sorted_points = sorted(points, key=lambda p: float(p["time"]))
@@ -283,6 +300,7 @@ def sample_clip_automation(
     if steps < 2:
         raise ValueError(f"steps must be >= 2, got {steps}")
     osc = get_client()
+    _require_clip(osc, track, clip)
     index, name, pmin, pmax = _resolve_parameter(osc, track, device, parameter)
     reply = osc.query(
         "/live/clip/automation/sample",
@@ -317,6 +335,7 @@ def clear_clip_automation(
     envelope. Otherwise clears every envelope on the clip.
     """
     osc = get_client()
+    _require_clip(osc, track, clip)
     if device is None and parameter is None:
         osc.send("/live/clip/automation/clear_all", track, clip)
         return {"track": track, "clip": clip, "cleared": "all"}
@@ -335,7 +354,9 @@ def clear_clip_automation(
 
 def fire_clip(track: int, clip: int) -> dict:
     """Start playing a clip. The system prompt requires Claude to confirm with the user first."""
-    get_client().send("/live/clip/fire", track, clip)
+    osc = get_client()
+    _require_clip(osc, track, clip)
+    osc.send("/live/clip/fire", track, clip)
     return {"fired": {"track": track, "clip": clip}}
 
 
@@ -378,7 +399,9 @@ def rename_track(track: int, name: str) -> dict:
 
 
 def delete_clip(track: int, clip: int) -> dict:
-    get_client().send("/live/clip_slot/delete_clip", int(track), int(clip))
+    osc = get_client()
+    _require_clip(osc, track, clip)
+    osc.send("/live/clip_slot/delete_clip", int(track), int(clip))
     return {"deleted_clip": {"track": int(track), "clip": int(clip)}}
 
 
@@ -394,6 +417,7 @@ def duplicate_clip(
     next empty slot on the same track. Errors if no empty slot exists.
     """
     osc = get_client()
+    _require_clip(osc, track, clip)
     tt = int(track) if target_track is None else int(target_track)
     if target_clip is None:
         # Walk clip slots on tt looking for the first empty one. Live's slot
@@ -425,7 +449,9 @@ def duplicate_clip(
 
 
 def rename_clip(track: int, clip: int, name: str) -> dict:
-    get_client().send("/live/clip/set/name", int(track), int(clip), str(name))
+    osc = get_client()
+    _require_clip(osc, track, clip)
+    osc.send("/live/clip/set/name", int(track), int(clip), str(name))
     return {"track": int(track), "clip": int(clip), "name": str(name)}
 
 
@@ -495,7 +521,9 @@ def set_clip_color(track: int, clip: int, color: str | int) -> dict:
     color and all chorus clips another so the session view reads at a glance.
     """
     rgb = _parse_color(color)
-    get_client().send("/live/clip/set/color", int(track), int(clip), rgb)
+    osc = get_client()
+    _require_clip(osc, track, clip)
+    osc.send("/live/clip/set/color", int(track), int(clip), rgb)
     return {"track": int(track), "clip": int(clip), "color": f"#{rgb:06X}"}
 
 

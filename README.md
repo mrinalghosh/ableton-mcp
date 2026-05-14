@@ -6,7 +6,7 @@ Designed for musicians who want a pair-programming-style collaborator: Claude ca
 
 ## Status
 
-**v0.5** — smoke-tested end-to-end against Live 12. Claude can now revise its own work: undo, duplicate/delete/rename tracks and clips, arm tracks, and capture played MIDI into clips — on top of the v0.4 automation surface and v0.3 browser/loading. No fork changes were needed for v0.5; everything maps to existing AbletonOSC endpoints. The [forked AbletonOSC](https://github.com/mrinalghosh/AbletonOSC) submodule still provides `BrowserHandler` (v0.3) and `AutomationHandler` (v0.4).
+**v0.6** — smoke-tested end-to-end against Live 12. Claude can now structure a song with scenes and visually group ideas with clip/scene color, on top of v0.5 revise-and-respond (undo, duplicate/delete/rename, capture MIDI), v0.4 automation, and v0.3 browser/loading. Clip-targeted writes now sanity-check that the slot is non-empty and raise a clear error instead of silently no-op'ing. No fork changes were needed for v0.5 or v0.6; the [forked AbletonOSC](https://github.com/mrinalghosh/AbletonOSC) submodule still provides `BrowserHandler` (v0.3) and `AutomationHandler` (v0.4).
 
 ## How it works
 
@@ -78,7 +78,7 @@ The system prompt asks Claude to **write first, then explain**: when you ask for
 - ~~v0.3: browse Live's Library and load instruments/effects onto tracks (forked AbletonOSC adds `BrowserHandler`)~~
 - ~~v0.4: clip automation lanes — read/write parameter envelopes inside a clip (forked AbletonOSC adds `AutomationHandler`)~~
 - ~~v0.5: revise-and-respond — `undo`; `duplicate_clip` / `delete_clip` / `delete_track` / `rename_track` / `rename_clip`; capture MIDI (record-arm + Capture) so Claude can riff on what you just played~~
-- v0.6: scene management (`create_scene`, `fire_scene`, `delete_scene`, `rename_scene`); clip color so Claude can visually group variants
+- ~~v0.6: scene management (`create_scene`, `fire_scene`, `delete_scene`, `rename_scene`); clip color so Claude can visually group variants~~
 - v0.7: scale/key inference and song-structure pedagogy — prompt-side work that makes Claude *smarter* with the existing tool surface (no new tools)
 - v0.8: quantize captured MIDI — close the capture loop with `quantize_clip`
 
