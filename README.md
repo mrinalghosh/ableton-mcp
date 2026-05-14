@@ -6,7 +6,7 @@ Designed for musicians who want a pair-programming-style collaborator: Claude ca
 
 ## Status
 
-**v0.4** — smoke-tested end-to-end against Live 12. Claude can now write clip-level automation envelopes for any device parameter, in addition to browsing Live's library and loading instruments/effects. Requires the [forked AbletonOSC](https://github.com/mrinalghosh/AbletonOSC) tracked here as a submodule (adds `BrowserHandler` and `AutomationHandler` over OSC).
+**v0.5** — smoke-tested end-to-end against Live 12. Claude can now revise its own work: undo, duplicate/delete/rename tracks and clips, arm tracks, and capture played MIDI into clips — on top of the v0.4 automation surface and v0.3 browser/loading. No fork changes were needed for v0.5; everything maps to existing AbletonOSC endpoints. The [forked AbletonOSC](https://github.com/mrinalghosh/AbletonOSC) submodule still provides `BrowserHandler` (v0.3) and `AutomationHandler` (v0.4).
 
 ## How it works
 
@@ -14,11 +14,13 @@ Designed for musicians who want a pair-programming-style collaborator: Claude ca
 Claude  ←→  MCP (this repo, stdio)  ←→  python-osc  ←→  AbletonOSC remote script  ←→  Ableton Live 12
 ```
 
-## Tool surface (v0.4)
+## Tool surface (v0.5)
 
 **Read** — `get_session_overview`, `get_track_detail`, `get_clip_notes`, `get_transport_state`, `get_selected`, `get_device_parameters`, `list_browser`, `sample_clip_automation`
 
-**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_clip_automation` / `clear_clip_automation`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo` / `set_track_arm`, `duplicate_track` / `delete_track` / `rename_track`, `duplicate_clip` / `delete_clip` / `rename_clip`, `capture_midi`, `undo`, `fire_clip` / `stop_clip` (gated — Claude must ask the user)
+**Revise** — `undo`
+
+**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_clip_automation` / `clear_clip_automation`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo` / `set_track_arm`, `duplicate_track` / `delete_track` / `rename_track`, `duplicate_clip` / `delete_clip` / `rename_clip`, `capture_midi`, `fire_clip` / `stop_clip` (gated — Claude must ask the user)
 
 ## Setup
 
@@ -75,7 +77,7 @@ The system prompt asks Claude to **write first, then explain**: when you ask for
 - ~~v0.2: device parameter control (`get_device_parameters`, `set_device_parameter`); per-track mixer (volume, pan, mute, solo)~~
 - ~~v0.3: browse Live's Library and load instruments/effects onto tracks (forked AbletonOSC adds `BrowserHandler`)~~
 - ~~v0.4: clip automation lanes — read/write parameter envelopes inside a clip (forked AbletonOSC adds `AutomationHandler`)~~
-- v0.5: revise-and-respond — `undo`; `duplicate_clip` / `delete_clip` / `delete_track` / `rename_track` / `rename_clip`; capture MIDI (record-arm + Capture) so Claude can riff on what you just played
+- ~~v0.5: revise-and-respond — `undo`; `duplicate_clip` / `delete_clip` / `delete_track` / `rename_track` / `rename_clip`; capture MIDI (record-arm + Capture) so Claude can riff on what you just played~~
 - v0.6: scale/key inference; song structure suggestions; scene management; clip color
 
 ## License
