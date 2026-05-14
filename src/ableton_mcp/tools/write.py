@@ -342,3 +342,106 @@ def fire_clip(track: int, clip: int) -> dict:
 def stop_clip(track: int, clip: int) -> dict:
     get_client().send("/live/clip/stop", track, clip)
     return {"stopped": {"track": track, "clip": clip}}
+
+
+def undo() -> dict:
+    """Undo the most recent action in Live.
+
+    Live's undo stack is per-user-action, so a single MCP call may map to one
+    or many undo steps. For example, create_midi_clip with 16 notes is one
+    undo, but create_track + load_device + create_midi_clip is three. Callers
+    that want to fully reverse a multi-step write should invoke undo
+    repeatedly and check can_undo.
+    """
+    osc = get_client()
+    osc.send("/live/song/undo")
+    can_undo = bool(int(osc.query("/live/song/get/can_undo")[0]))
+    return {"undone": True, "can_undo_more": can_undo}
+
+
+def delete_track(track: int) -> dict:
+    get_client().send("/live/song/delete_track", int(track))
+    return {"deleted_track": int(track)}
+
+
+def duplicate_track(track: int) -> dict:
+    """Duplicate a track. Live inserts the copy directly after the source."""
+    osc = get_client()
+    before = int(osc.query("/live/song/get/num_tracks")[0])
+    osc.send("/live/song/duplicate_track", int(track))
+    return {"duplicated_track": int(track), "new_index": int(track) + 1, "prev_track_count": before}
+
+
+def rename_track(track: int, name: str) -> dict:
+    get_client().send("/live/track/set/name", int(track), str(name))
+    return {"track": int(track), "name": str(name)}
+
+
+def delete_clip(track: int, clip: int) -> dict:
+    get_client().send("/live/clip_slot/delete_clip", int(track), int(clip))
+    return {"deleted_clip": {"track": int(track), "clip": int(clip)}}
+
+
+def duplicate_clip(
+    track: int,
+    clip: int,
+    target_track: int | None = None,
+    target_clip: int | None = None,
+) -> dict:
+    """Duplicate a clip to another slot.
+
+    If target_track/target_clip are omitted, the clip is duplicated to the
+    next empty slot on the same track. Errors if no empty slot exists.
+    """
+    osc = get_client()
+    tt = int(track) if target_track is None else int(target_track)
+    if target_clip is None:
+        # Walk clip slots on tt looking for the first empty one. Live's slot
+        # count equals num_scenes; probing past that would raise on the Live
+        # side. On the same track, start just after the source clip.
+        num_scenes = int(osc.query("/live/song/get/num_scenes")[0])
+        start = int(clip) + 1 if tt == int(track) else 0
+        tc = None
+        for slot in range(start, num_scenes):
+            reply = osc.query("/live/clip_slot/get/has_clip", tt, slot)
+            if not int(reply[2]):
+                tc = slot
+                break
+        if tc is None:
+            raise RuntimeError(
+                f"No empty clip slot on track {tt} between slot {start} and {num_scenes - 1}. "
+                f"Add a scene or pass an explicit target_clip."
+            )
+    else:
+        tc = int(target_clip)
+    osc.send(
+        "/live/clip_slot/duplicate_clip_to",
+        int(track), int(clip), tt, tc,
+    )
+    return {
+        "source": {"track": int(track), "clip": int(clip)},
+        "target": {"track": tt, "clip": tc},
+    }
+
+
+def rename_clip(track: int, clip: int, name: str) -> dict:
+    get_client().send("/live/clip/set/name", int(track), int(clip), str(name))
+    return {"track": int(track), "clip": int(clip), "name": str(name)}
+
+
+def set_track_arm(track: int, arm: bool) -> dict:
+    """Arm or disarm a track for recording / MIDI capture."""
+    get_client().send("/live/track/set/arm", int(track), 1 if arm else 0)
+    return {"track": int(track), "arm": bool(arm)}
+
+
+def capture_midi() -> dict:
+    """Capture recently played MIDI into a new clip on the armed track.
+
+    Live's Capture MIDI looks at the buffer of MIDI input on armed tracks and
+    materializes it as a clip at the playhead. The track must be armed and
+    have received recent MIDI input; otherwise this is a silent no-op. Use
+    set_track_arm first if needed.
+    """
+    get_client().send("/live/song/capture_midi")
+    return {"captured": True}

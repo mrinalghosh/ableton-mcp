@@ -18,7 +18,7 @@ Claude  ←→  MCP (this repo, stdio)  ←→  python-osc  ←→  AbletonOSC r
 
 **Read** — `get_session_overview`, `get_track_detail`, `get_clip_notes`, `get_transport_state`, `get_selected`, `get_device_parameters`, `list_browser`, `sample_clip_automation`
 
-**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_clip_automation` / `clear_clip_automation`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo`, `fire_clip` / `stop_clip` (gated — Claude must ask the user)
+**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_clip_automation` / `clear_clip_automation`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo` / `set_track_arm`, `duplicate_track` / `delete_track` / `rename_track`, `duplicate_clip` / `delete_clip` / `rename_clip`, `capture_midi`, `undo`, `fire_clip` / `stop_clip` (gated — Claude must ask the user)
 
 ## Setup
 
@@ -67,6 +67,7 @@ The system prompt asks Claude to **write first, then explain**: when you ask for
 ## Known quirks
 
 - **Track/clip names come back with hyphens instead of spaces.** AbletonOSC normalizes whitespace in string responses, so a track displayed in Live as `1 MIDI` is reported as `1-MIDI`. We pass this through unchanged — reversing it would corrupt names the user actually wrote with hyphens.
+- **`undo` is per-Live-action, not per-MCP-tool.** A single MCP write may correspond to several Live undo steps (e.g. `create_track` + `load_device` + `create_midi_clip` is three undos), or to one (a `modify_clip_notes` with 16 notes is one). To fully reverse a multi-step change, call `undo` repeatedly — the reply's `can_undo_more` flag indicates whether more history remains. AbletonOSC doesn't expose undo grouping, so we can't fix this in the wrapper.
 
 ## Roadmap
 
@@ -74,7 +75,8 @@ The system prompt asks Claude to **write first, then explain**: when you ask for
 - ~~v0.2: device parameter control (`get_device_parameters`, `set_device_parameter`); per-track mixer (volume, pan, mute, solo)~~
 - ~~v0.3: browse Live's Library and load instruments/effects onto tracks (forked AbletonOSC adds `BrowserHandler`)~~
 - ~~v0.4: clip automation lanes — read/write parameter envelopes inside a clip (forked AbletonOSC adds `AutomationHandler`)~~
-- v0.5: scale/key inference; song structure suggestions
+- v0.5: revise-and-respond — `undo`; `duplicate_clip` / `delete_clip` / `delete_track` / `rename_track` / `rename_clip`; capture MIDI (record-arm + Capture) so Claude can riff on what you just played
+- v0.6: scale/key inference; song structure suggestions; scene management; clip color
 
 ## License
 

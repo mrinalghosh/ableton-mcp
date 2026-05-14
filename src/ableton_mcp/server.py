@@ -91,6 +91,42 @@ mcp.tool(
         "envelope, or omit them to clear every envelope on the clip."
     )
 )(write.clear_clip_automation)
+mcp.tool(
+    description=(
+        "Undo the most recent action in Live. Note: a single MCP write may "
+        "map to multiple Live undo steps (e.g. create_track + load_device + "
+        "create_midi_clip is three undos). Call repeatedly to fully reverse "
+        "a multi-step change; the reply's can_undo_more flag indicates "
+        "whether more history remains."
+    )
+)(write.undo)
+mcp.tool(description="Delete a track by index.")(write.delete_track)
+mcp.tool(
+    description="Duplicate a track. Live inserts the copy directly after the source."
+)(write.duplicate_track)
+mcp.tool(description="Rename a track.")(write.rename_track)
+mcp.tool(description="Delete a clip from a clip slot.")(write.delete_clip)
+mcp.tool(
+    description=(
+        "Duplicate a clip to another slot. If target_track/target_clip are "
+        "omitted, copies to the next empty slot on the same track."
+    )
+)(write.duplicate_clip)
+mcp.tool(description="Rename a clip.")(write.rename_clip)
+mcp.tool(
+    description=(
+        "Arm or disarm a track for recording / MIDI capture. Required before "
+        "capture_midi will pick up input from that track."
+    )
+)(write.set_track_arm)
+mcp.tool(
+    description=(
+        "Capture recently played MIDI from armed tracks into a new clip at "
+        "the playhead. The track must be armed and have received recent MIDI "
+        "input — otherwise this is a silent no-op. Use set_track_arm first "
+        "if the user wants you to riff on what they're about to play."
+    )
+)(write.capture_midi)
 
 
 def main() -> None:
