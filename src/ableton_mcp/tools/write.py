@@ -176,6 +176,141 @@ def load_device(track: int, category: str, path: list[str]) -> dict:
     return {"track": int(_track), "category": category, "path": path, "loaded": str(detail)}
 
 
+def _resolve_parameter(osc, track: int, device: int, parameter: int | str) -> tuple[int, str, float, float]:
+    """Resolve `parameter` (name or index) to (index, name, min, max)."""
+    names = osc.query("/live/device/get/parameters/name", track, device)[2:]
+    if isinstance(parameter, str):
+        try:
+            index = next(i for i, n in enumerate(names) if str(n) == parameter)
+        except StopIteration as e:
+            raise ValueError(
+                f"No parameter named {parameter!r} on track {track} device {device}. "
+                f"Available: {[str(n) for n in names]}"
+            ) from e
+    else:
+        index = int(parameter)
+        if index < 0 or index >= len(names):
+            raise ValueError(
+                f"Parameter index {index} out of range; device has {len(names)} parameters"
+            )
+    mins = osc.query("/live/device/get/parameters/min", track, device)[2:]
+    maxes = osc.query("/live/device/get/parameters/max", track, device)[2:]
+    return index, str(names[index]), float(mins[index]), float(maxes[index])
+
+
+def set_clip_automation(
+    track: int,
+    clip: int,
+    device: int,
+    parameter: int | str,
+    points: list[dict],
+) -> dict:
+    """Write an automation envelope for a device parameter inside a clip.
+
+    points: list of {time, value} or {time, duration, value}. `time` and
+    `duration` are in beats relative to the clip start. Omitting `duration`
+    (or passing 0) writes a single breakpoint at `time`; a positive duration
+    writes a flat segment holding `value` over [time, time+duration].
+
+    Values are clamped to the parameter's [min, max] range. Existing
+    automation for this parameter is NOT cleared first — call
+    clear_clip_automation if you want a clean slate.
+    """
+    if not points:
+        raise ValueError("points must contain at least one entry")
+    osc = get_client()
+    index, name, pmin, pmax = _resolve_parameter(osc, track, device, parameter)
+    written = []
+    for p in points:
+        t = float(p["time"])
+        d = float(p.get("duration", 0.0))
+        v = float(p["value"])
+        if d < 0:
+            raise ValueError(f"duration must be >= 0, got {d}")
+        clamped = max(pmin, min(pmax, v))
+        osc.send(
+            "/live/clip/automation/insert_step",
+            track, clip, device, index, t, d, clamped,
+        )
+        written.append({"time": t, "duration": d, "value": clamped, "clamped": clamped != v})
+    return {
+        "track": track,
+        "clip": clip,
+        "device": device,
+        "parameter": {"index": index, "name": name, "min": pmin, "max": pmax},
+        "points": written,
+    }
+
+
+def sample_clip_automation(
+    track: int,
+    clip: int,
+    device: int,
+    parameter: int | str,
+    start: float,
+    end: float,
+    steps: int = 16,
+) -> dict:
+    """Sample an automation envelope at `steps` evenly spaced times in [start, end].
+
+    Live's LOM doesn't expose breakpoints directly, so reads are sampled.
+    Returns {time, value} pairs.
+    """
+    if end <= start:
+        raise ValueError(f"end ({end}) must be greater than start ({start})")
+    if steps < 2:
+        raise ValueError(f"steps must be >= 2, got {steps}")
+    osc = get_client()
+    index, name, pmin, pmax = _resolve_parameter(osc, track, device, parameter)
+    reply = osc.query(
+        "/live/clip/automation/sample",
+        track, clip, device, index, float(start), float(end), int(steps),
+        timeout=3.0,
+    )
+    # Reply: (track, clip, device, param, steps, t0, v0, t1, v1, ...) on success,
+    # or (0, "error message") on failure.
+    if len(reply) >= 2 and reply[0] == 0 and isinstance(reply[1], str):
+        raise RuntimeError(f"sample failed: {reply[1]}")
+    payload = reply[5:]
+    samples = [{"time": float(payload[i]), "value": float(payload[i + 1])}
+               for i in range(0, len(payload), 2)]
+    return {
+        "track": track,
+        "clip": clip,
+        "device": device,
+        "parameter": {"index": index, "name": name, "min": pmin, "max": pmax},
+        "samples": samples,
+    }
+
+
+def clear_clip_automation(
+    track: int,
+    clip: int,
+    device: int | None = None,
+    parameter: int | str | None = None,
+) -> dict:
+    """Clear automation on a clip.
+
+    If `device` and `parameter` are both given, clears only that parameter's
+    envelope. Otherwise clears every envelope on the clip.
+    """
+    osc = get_client()
+    if device is None and parameter is None:
+        osc.send("/live/clip/automation/clear_all", track, clip)
+        return {"track": track, "clip": clip, "cleared": "all"}
+    if device is None or parameter is None:
+        raise ValueError("device and parameter must be given together, or both omitted")
+    index, name, _pmin, _pmax = _resolve_parameter(osc, track, device, parameter)
+    osc.send("/live/clip/automation/clear", track, clip, device, index)
+    return {
+        "track": track,
+        "clip": clip,
+        "device": device,
+        "parameter": {"index": index, "name": name},
+        "cleared": "one",
+    }
+
+
 def fire_clip(track: int, clip: int) -> dict:
     """Start playing a clip. The system prompt requires Claude to confirm with the user first."""
     get_client().send("/live/clip/fire", track, clip)

@@ -68,6 +68,27 @@ mcp.tool(
 )(write.set_track_panning)
 mcp.tool(description="Mute or unmute a track.")(write.set_track_mute)
 mcp.tool(description="Solo or unsolo a track.")(write.set_track_solo)
+mcp.tool(
+    description=(
+        "Write a clip-level automation envelope for a device parameter. "
+        "points is a list of {time, value} or {time, duration, value} entries "
+        "(beats relative to clip start). Existing automation is not cleared "
+        "first — use clear_clip_automation for a fresh start. Values clamped "
+        "to the parameter range."
+    )
+)(write.set_clip_automation)
+mcp.tool(
+    description=(
+        "Sample an automation envelope at evenly spaced times in [start, end]. "
+        "Live's LOM doesn't expose breakpoints, so reads are sampled."
+    )
+)(write.sample_clip_automation)
+mcp.tool(
+    description=(
+        "Clear automation on a clip. Pass device+parameter to clear one "
+        "envelope, or omit them to clear every envelope on the clip."
+    )
+)(write.clear_clip_automation)
 
 
 def main() -> None:
