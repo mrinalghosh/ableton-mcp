@@ -4,7 +4,7 @@ from __future__ import annotations
 from mcp.server.fastmcp import FastMCP
 
 from .prompts import SYSTEM_PROMPT
-from .tools import read, write
+from .tools import analyze, read, write
 
 mcp = FastMCP("ableton-mcp", instructions=SYSTEM_PROMPT)
 
@@ -36,6 +36,30 @@ mcp.tool(
         "to discover what to pass to load_device."
     )
 )(read.list_browser)
+
+# --- Analysis tools ---
+mcp.tool(
+    description=(
+        "Estimate the musical key of a single MIDI clip via Krumhansl-Kessler "
+        "correlation on a duration-weighted pitch-class histogram. Returns "
+        "the best-fit key, confidence, and runner-up (often the relative "
+        "major/minor — small margin means ambiguous)."
+    )
+)(analyze.detect_clip_key)
+mcp.tool(
+    description=(
+        "Estimate the key of a whole track by aggregating notes across every "
+        "MIDI clip on it. More robust than detect_clip_key for short or "
+        "chromatic clips."
+    )
+)(analyze.detect_track_key)
+mcp.tool(
+    description=(
+        "Estimate the key of the whole set by aggregating every MIDI clip on "
+        "every track. Drum tracks are excluded by default — their pitch "
+        "content is percussive mapping, not tonal."
+    )
+)(analyze.detect_session_key)
 
 # --- Write tools ---
 mcp.tool(
