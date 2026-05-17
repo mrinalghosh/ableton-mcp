@@ -107,7 +107,9 @@ mcp.tool(
 mcp.tool(
     description="Start playing a clip. ASK THE USER FIRST before calling — surprise playback is disruptive."
 )(write.fire_clip)
-mcp.tool(description="Stop a clip.")(write.stop_clip)
+mcp.tool(
+    description="Stop a clip. Less disruptive than fire_clip, but still avoid stopping mid-performance without checking with the user."
+)(write.stop_clip)
 mcp.tool(
     description="Set one parameter on a device. Prefer addressing by name. Value is clamped to the parameter range."
 )(write.set_device_parameter)
@@ -155,7 +157,8 @@ mcp.tool(
     description=(
         "Edit a track. `op` is 'delete', 'duplicate', or 'rename'. "
         "'rename' requires `name`. Duplicate inserts the copy directly after "
-        "the source."
+        "the source. ASK THE USER FIRST for op='delete' — losing a track is "
+        "destructive."
     )
 )(write.edit_track)
 mcp.tool(
@@ -163,13 +166,16 @@ mcp.tool(
         "Edit a clip. `op` is 'delete', 'duplicate', or 'rename'. "
         "'rename' requires `name`. Duplicate with no target lands in the "
         "next empty slot on the same track; pass target_track/target_clip "
-        "for explicit placement."
+        "for explicit placement. ASK THE USER FIRST for op='delete' — "
+        "losing a clip is destructive."
     )
 )(write.edit_clip)
 mcp.tool(
     description=(
         "Arm or disarm a track for recording / MIDI capture. Required before "
-        "capture_midi will pick up input from that track."
+        "capture_midi will pick up input from that track. ASK THE USER FIRST "
+        "— arming changes how Live responds to input and can disrupt their "
+        "session setup."
     )
 )(write.set_track_arm)
 mcp.tool(
@@ -187,7 +193,8 @@ mcp.tool(
     description=(
         "Edit a scene. `op` is 'delete', 'duplicate', or 'rename'. "
         "'rename' requires `name`. Duplicate inserts the copy directly after "
-        "the source."
+        "the source. ASK THE USER FIRST for op='delete' — losing a scene is "
+        "destructive."
     )
 )(write.edit_scene)
 mcp.tool(
