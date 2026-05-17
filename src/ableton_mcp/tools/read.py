@@ -117,11 +117,17 @@ def get_transport_state() -> dict[str, Any]:
 _BROWSER_CATEGORIES = ("instruments", "drums", "sounds", "audio_effects", "midi_effects")
 
 
-def list_browser(category: str, path: list[str] | None = None) -> dict[str, Any]:
+def list_browser(
+    category: str,
+    path: list[str] | None = None,
+    refresh: bool = False,
+) -> dict[str, Any]:
     """List children of a Live browser folder.
 
     category: one of "instruments", "drums", "sounds", "audio_effects", "midi_effects".
     path: list of folder names to descend into, e.g. ["Operator", "Bass"].
+    refresh: drop the server-side cache for this path before listing. Use
+    after installing a pack or rescanning the library.
     Returns each child's name, whether it's a folder, and whether it can be
     loaded onto a track via load_device.
     """
@@ -131,7 +137,11 @@ def list_browser(category: str, path: list[str] | None = None) -> dict[str, Any]
         )
     path = path or []
     osc = get_client()
-    reply = osc.query("/live/browser/list", category, *path, timeout=2.0)
+    if refresh:
+        osc.query("/live/browser/invalidate", category, *path, timeout=2.0)
+    # First hit on a large folder forces Live to walk it from disk, which
+    # can take several seconds. Cached hits return instantly.
+    reply = osc.query("/live/browser/list", category, *path, timeout=8.0)
     # AbletonOSC echoes (category, *path) before the payload.
     payload = reply[1 + len(path):]
     children = []

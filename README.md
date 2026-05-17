@@ -6,7 +6,7 @@ Designed for musicians who want a pair-programming-style collaborator: Claude ca
 
 ## Status
 
-**v0.6** — smoke-tested end-to-end against Live 12. Claude can now structure a song with scenes and visually group ideas with clip/scene color, on top of v0.5 revise-and-respond (undo, duplicate/delete/rename, capture MIDI), v0.4 automation, and v0.3 browser/loading. Clip-targeted writes now sanity-check that the slot is non-empty and raise a clear error instead of silently no-op'ing. No fork changes were needed for v0.5 or v0.6; the [forked AbletonOSC](https://github.com/mrinalghosh/AbletonOSC) submodule still provides `BrowserHandler` (v0.3) and `AutomationHandler` (v0.4).
+**v0.8** — high-level composition tools and a simpler write API. `create_chord_progression` (roman numerals or chord names + key) and `create_drum_pattern` (step strings like `x...x...x...x...`) let Claude express harmonic and rhythmic ideas in a few tokens instead of emitting raw note lists. The duplicate/delete/rename trio per object collapses into one `edit_track` / `edit_clip` / `edit_scene` tool each, cutting the surface area Claude has to reason about. Browser listing in the forked AbletonOSC now caches per-folder results, so the first hit pays the disk walk and subsequent `list_browser` calls return instantly (previously they tripped the 2.0s OSC timeout on large libraries). v0.7 added analyze tools (`detect_clip_key`, `detect_track_key`, `detect_session_key`) using Krumhansl-Schmuckler key profiles. Builds on v0.6 scenes + color, v0.5 revise-and-respond (undo, capture MIDI), v0.4 automation, and v0.3 browser/loading.
 
 ## How it works
 
@@ -14,13 +14,15 @@ Designed for musicians who want a pair-programming-style collaborator: Claude ca
 Claude  ←→  MCP (this repo, stdio)  ←→  python-osc  ←→  AbletonOSC remote script  ←→  Ableton Live 12
 ```
 
-## Tool surface (v0.6)
+## Tool surface (v0.8)
 
 **Read** — `get_session_overview`, `get_track_detail`, `get_clip_notes`, `get_transport_state`, `get_selected`, `get_device_parameters`, `list_browser`, `sample_clip_automation`
 
+**Analyze** — `detect_clip_key`, `detect_track_key`, `detect_session_key`
+
 **Revise** — `undo`
 
-**Write** — `create_midi_clip`, `modify_clip_notes`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_clip_automation` / `clear_clip_automation`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo` / `set_track_arm`, `duplicate_track` / `delete_track` / `rename_track`, `duplicate_clip` / `delete_clip` / `rename_clip` / `set_clip_color`, `create_scene` / `duplicate_scene` / `delete_scene` / `rename_scene` / `set_scene_color`, `capture_midi`, `fire_clip` / `fire_scene` / `stop_clip` (gated — Claude must ask the user)
+**Write** — `create_midi_clip`, `modify_clip_notes`, `create_chord_progression`, `create_drum_pattern`, `set_tempo`, `set_time_signature`, `create_track`, `load_device`, `set_device_parameter`, `set_clip_automation` / `clear_clip_automation`, `set_track_volume` / `set_track_panning` / `set_track_mute` / `set_track_solo` / `set_track_arm`, `edit_track` / `edit_clip` / `edit_scene` (duplicate, delete, rename), `create_scene`, `set_clip_color` / `set_scene_color`, `capture_midi`, `fire_clip` / `fire_scene` / `stop_clip` (gated — Claude must ask the user)
 
 ## Setup
 
@@ -79,8 +81,9 @@ The system prompt asks Claude to **write first, then explain**: when you ask for
 - ~~v0.4: clip automation lanes — read/write parameter envelopes inside a clip (forked AbletonOSC adds `AutomationHandler`)~~
 - ~~v0.5: revise-and-respond — `undo`; `duplicate_clip` / `delete_clip` / `delete_track` / `rename_track` / `rename_clip`; capture MIDI (record-arm + Capture) so Claude can riff on what you just played~~
 - ~~v0.6: scene management (`create_scene`, `fire_scene`, `delete_scene`, `rename_scene`); clip color so Claude can visually group variants~~
-- v0.7: scale/key inference and song-structure pedagogy — prompt-side work that makes Claude *smarter* with the existing tool surface (no new tools)
-- v0.8: quantize captured MIDI — close the capture loop with `quantize_clip`
+- ~~v0.7: scale/key inference — `detect_clip_key` / `detect_track_key` / `detect_session_key` using Krumhansl-Schmuckler key profiles, plus pitch utility helpers~~
+- ~~v0.8: high-level composition tools (`create_chord_progression`, `create_drum_pattern`) so Claude can express musical ideas in a few tokens; collapse per-object dup/delete/rename into single `edit_track` / `edit_clip` / `edit_scene` tools; cache browser folder listings in AbletonOSC fork to fix `list_browser` timeouts on large libraries~~
+- v0.9: quantize captured MIDI — close the capture loop with `quantize_clip`
 
 ## License
 
