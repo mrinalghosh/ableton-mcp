@@ -63,9 +63,36 @@ mcp.tool(
 
 # --- Write tools ---
 mcp.tool(
-    description="Create a MIDI clip and fill with notes. Use this when the user wants a musical idea written into the set."
+    description=(
+        "Create a MIDI clip and fill with notes. Lowest-level write — prefer "
+        "create_chord_progression or create_drum_pattern when the idea fits "
+        "those shapes, since they take a much shorter spec."
+    )
 )(write.create_midi_clip)
 mcp.tool(description="Replace all notes in an existing MIDI clip.")(write.modify_clip_notes)
+mcp.tool(
+    description=(
+        "Write a chord progression as block chords into a MIDI clip. `chords` "
+        "is a list of tokens — roman numerals ('I', 'vi', 'V7', 'bVII', 'ii°') "
+        "or absolute chord names ('Cm', 'F#maj7', 'G7'); the two may mix. "
+        "Roman tokens require `key` (e.g. 'C' or 'Am'). `voicing` is 'triad' "
+        "(default), 'seventh', or 'power' — applied only to tokens without "
+        "an explicit suffix. `beats_per_chord` may be a scalar or a per-chord "
+        "list. PREFER this over create_midi_clip when writing harmony."
+    )
+)(write.create_chord_progression)
+mcp.tool(
+    description=(
+        "Write a drum pattern from step strings into a MIDI clip. `pattern` "
+        "is a dict {voice: step_string}. Voice keys can be drum-map names "
+        "('kick', 'snare', 'hat', 'open_hat', 'clap', 'tom_low', 'ride', "
+        "...), note names ('C1', 'D1'), or raw MIDI ints. Step chars: "
+        "'x'/'X'/'1' = hit, '.'/'-'/'_'/'0'/' ' = rest, '2'-'9' = hit at "
+        "scaled velocity ('9' loudest). Rows may have different lengths "
+        "(mix 16ths and triplets). "
+        "PREFER this over create_midi_clip when writing drums."
+    )
+)(write.create_drum_pattern)
 mcp.tool(description="Set song tempo (BPM).")(write.set_tempo)
 mcp.tool(description="Set song time signature.")(write.set_time_signature)
 mcp.tool(description="Create a new MIDI or audio track at end of set.")(write.create_track)
@@ -124,19 +151,21 @@ mcp.tool(
         "whether more history remains."
     )
 )(write.undo)
-mcp.tool(description="Delete a track by index.")(write.delete_track)
-mcp.tool(
-    description="Duplicate a track. Live inserts the copy directly after the source."
-)(write.duplicate_track)
-mcp.tool(description="Rename a track.")(write.rename_track)
-mcp.tool(description="Delete a clip from a clip slot.")(write.delete_clip)
 mcp.tool(
     description=(
-        "Duplicate a clip to another slot. If target_track/target_clip are "
-        "omitted, copies to the next empty slot on the same track."
+        "Edit a track. `op` is 'delete', 'duplicate', or 'rename'. "
+        "'rename' requires `name`. Duplicate inserts the copy directly after "
+        "the source."
     )
-)(write.duplicate_clip)
-mcp.tool(description="Rename a clip.")(write.rename_clip)
+)(write.edit_track)
+mcp.tool(
+    description=(
+        "Edit a clip. `op` is 'delete', 'duplicate', or 'rename'. "
+        "'rename' requires `name`. Duplicate with no target lands in the "
+        "next empty slot on the same track; pass target_track/target_clip "
+        "for explicit placement."
+    )
+)(write.edit_clip)
 mcp.tool(
     description=(
         "Arm or disarm a track for recording / MIDI capture. Required before "
@@ -154,11 +183,13 @@ mcp.tool(
 mcp.tool(
     description="Create a scene. Default index=-1 appends at the end; optionally name it on creation."
 )(write.create_scene)
-mcp.tool(description="Delete a scene by index.")(write.delete_scene)
 mcp.tool(
-    description="Duplicate a scene. Live inserts the copy directly after the source."
-)(write.duplicate_scene)
-mcp.tool(description="Rename a scene.")(write.rename_scene)
+    description=(
+        "Edit a scene. `op` is 'delete', 'duplicate', or 'rename'. "
+        "'rename' requires `name`. Duplicate inserts the copy directly after "
+        "the source."
+    )
+)(write.edit_scene)
 mcp.tool(
     description=(
         "Fire a scene — plays every clip in that row. ASK THE USER FIRST "

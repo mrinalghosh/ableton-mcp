@@ -455,6 +455,69 @@ def rename_clip(track: int, clip: int, name: str) -> dict:
     return {"track": int(track), "clip": int(clip), "name": str(name)}
 
 
+def edit_track(op: str, track: int, name: str | None = None) -> dict:
+    """Edit a track. `op` is one of:
+
+    - 'delete': remove the track at `track`.
+    - 'duplicate': duplicate the track; Live inserts the copy after it.
+    - 'rename': rename the track; requires `name`.
+    """
+    if op == "delete":
+        return delete_track(track)
+    if op == "duplicate":
+        return duplicate_track(track)
+    if op == "rename":
+        if name is None:
+            raise ValueError("op='rename' requires `name`")
+        return rename_track(track, name)
+    raise ValueError(f"op must be one of 'delete', 'duplicate', 'rename'; got {op!r}")
+
+
+def edit_clip(
+    op: str,
+    track: int,
+    clip: int,
+    name: str | None = None,
+    target_track: int | None = None,
+    target_clip: int | None = None,
+) -> dict:
+    """Edit a clip. `op` is one of:
+
+    - 'delete': remove the clip at (track, clip).
+    - 'duplicate': copy the clip. With no target, lands in the next empty
+      slot on the same track. Pass `target_track`/`target_clip` for explicit
+      placement.
+    - 'rename': rename the clip; requires `name`.
+    """
+    if op == "delete":
+        return delete_clip(track, clip)
+    if op == "duplicate":
+        return duplicate_clip(track, clip, target_track, target_clip)
+    if op == "rename":
+        if name is None:
+            raise ValueError("op='rename' requires `name`")
+        return rename_clip(track, clip, name)
+    raise ValueError(f"op must be one of 'delete', 'duplicate', 'rename'; got {op!r}")
+
+
+def edit_scene(op: str, scene: int, name: str | None = None) -> dict:
+    """Edit a scene. `op` is one of:
+
+    - 'delete': remove the scene at `scene`.
+    - 'duplicate': duplicate the scene; Live inserts the copy after it.
+    - 'rename': rename the scene; requires `name`.
+    """
+    if op == "delete":
+        return delete_scene(scene)
+    if op == "duplicate":
+        return duplicate_scene(scene)
+    if op == "rename":
+        if name is None:
+            raise ValueError("op='rename' requires `name`")
+        return rename_scene(scene, name)
+    raise ValueError(f"op must be one of 'delete', 'duplicate', 'rename'; got {op!r}")
+
+
 def set_track_arm(track: int, arm: bool) -> dict:
     """Arm or disarm a track for recording / MIDI capture."""
     get_client().send("/live/track/set/arm", int(track), 1 if arm else 0)
