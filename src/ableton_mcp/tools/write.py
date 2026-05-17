@@ -6,6 +6,9 @@ choice, rhythmic idea, voice leading). The system prompt enforces this.
 from __future__ import annotations
 
 from ..osc_client import get_client
+from ..theory.chords import build_chord, parse_chord_token, parse_key
+from ..theory.drums import DEFAULT_DRUM_MAP
+from ..theory.pitch import name_to_midi
 
 
 def _require_clip(osc, track: int, clip: int) -> None:
@@ -588,6 +591,256 @@ def set_clip_color(track: int, clip: int, color: str | int) -> dict:
     _require_clip(osc, track, clip)
     osc.send("/live/clip/set/color", int(track), int(clip), rgb)
     return {"track": int(track), "clip": int(clip), "color": f"#{rgb:06X}"}
+
+
+_VOICING_UPGRADE: dict[str, dict[str, str]] = {
+    "triad":   {},
+    "seventh": {"maj": "maj7", "min": "min7", "dim": "m7b5"},
+    "power":   {"maj": "5", "min": "5", "dim": "5", "aug": "5"},
+}
+
+
+def create_chord_progression(
+    track: int,
+    clip_slot: int,
+    chords: list[str],
+    key: str | None = None,
+    beats_per_chord: float | list[float] = 4.0,
+    voicing: str = "triad",
+    octave: int = 3,
+    duration_ratio: float = 1.0,
+    velocity: int = 90,
+    name: str | None = None,
+) -> dict:
+    """Write a chord progression as block chords into a MIDI clip.
+
+    chords: list of chord tokens. Each token is either a roman numeral
+        ('I', 'vi', 'V7', 'bVII', 'ii°') or a chord name ('Cm', 'F#maj7',
+        'G7'). Roman tokens need `key` (e.g. 'C' or 'Am') to resolve.
+        Tokens may mix freely.
+    beats_per_chord: scalar (every chord same length) or list (one per chord).
+    voicing: 'triad' (default), 'seventh' (bare numerals upgraded to 7ths),
+        or 'power' (root + fifth only). Explicit suffixes always win.
+    octave: octave for the chord root using Ableton's C3=60 convention.
+    duration_ratio: note length / beats_per_chord. <1.0 for staccato; default
+        1.0 holds each chord through to the next.
+    velocity: 1-127.
+    name: optional clip name.
+    """
+    if not chords:
+        raise ValueError("chords must contain at least one token")
+    if voicing not in _VOICING_UPGRADE:
+        raise ValueError(
+            f"voicing must be one of {sorted(_VOICING_UPGRADE)}, got {voicing!r}"
+        )
+    if isinstance(beats_per_chord, list):
+        if len(beats_per_chord) != len(chords):
+            raise ValueError(
+                f"beats_per_chord list length ({len(beats_per_chord)}) must match "
+                f"chords length ({len(chords)})"
+            )
+        durations = [float(b) for b in beats_per_chord]
+    else:
+        durations = [float(beats_per_chord)] * len(chords)
+    if any(d <= 0 for d in durations):
+        raise ValueError("each beats_per_chord must be > 0")
+    if not (1 <= int(velocity) <= 127):
+        raise ValueError(f"velocity must be in [1, 127], got {velocity}")
+
+    tonic_pc: int | None = None
+    mode: str | None = None
+    if key is not None:
+        tonic_pc, mode = parse_key(key)
+
+    upgrade = _VOICING_UPGRADE[voicing]
+
+    notes: list[dict] = []
+    parsed: list[dict] = []
+    cursor = 0.0
+    for token, dur in zip(chords, durations):
+        root_pc, quality, explicit = parse_chord_token(token, tonic_pc, mode)
+        if not explicit and quality in upgrade:
+            quality = upgrade[quality]
+        pitches = build_chord(root_pc, quality, octave=octave)
+        hold = dur * float(duration_ratio)
+        if hold <= 0:
+            raise ValueError(f"duration_ratio yielded non-positive note length: {hold}")
+        for p in pitches:
+            notes.append({
+                "pitch": p,
+                "start": cursor,
+                "duration": hold,
+                "velocity": int(velocity),
+            })
+        parsed.append({
+            "token": token,
+            "root_pc": root_pc,
+            "quality": quality,
+            "pitches": pitches,
+            "start": cursor,
+            "duration": dur,
+        })
+        cursor += dur
+
+    osc = get_client()
+    osc.send("/live/clip_slot/create_clip", int(track), int(clip_slot), cursor)
+    flat: list = []
+    for n in notes:
+        flat.extend([int(n["pitch"]), float(n["start"]), float(n["duration"]),
+                     int(n["velocity"]), 0])
+    if flat:
+        osc.send("/live/clip/add/notes", int(track), int(clip_slot), *flat)
+    if name:
+        osc.send("/live/clip/set/name", int(track), int(clip_slot), str(name))
+
+    return {
+        "track": int(track),
+        "clip_slot": int(clip_slot),
+        "length_beats": cursor,
+        "key": key,
+        "voicing": voicing,
+        "chords": parsed,
+        "note_count": len(notes),
+    }
+
+
+def _resolve_drum_voice(key: str | int) -> int:
+    """Voice key -> MIDI pitch. Accepts a name, a note string ('C1'), or an int.
+
+    JSON dict keys arrive as strings even when the caller wrote an int, so
+    numeric strings like "36" are accepted and parsed as MIDI numbers.
+    """
+    if isinstance(key, int):
+        return key
+    s = str(key).strip()
+    if s in DEFAULT_DRUM_MAP:
+        return DEFAULT_DRUM_MAP[s]
+    if s.lstrip("-").isdigit():
+        n = int(s)
+        if 0 <= n <= 127:
+            return n
+        raise ValueError(f"MIDI pitch {n} out of range [0, 127]")
+    # Note name like 'C1' / 'F#2' — fall through to pitch.name_to_midi.
+    try:
+        return name_to_midi(s)
+    except ValueError as e:
+        raise ValueError(
+            f"unknown drum voice {key!r}; pass a name from DEFAULT_DRUM_MAP, "
+            f"a note name like 'C1', or an int MIDI pitch"
+        ) from e
+
+
+_STEP_REST_CHARS = frozenset(".-_0 ")
+
+
+def _parse_step_string(row: str, default_velocity: int) -> list[tuple[int, int]]:
+    """Return [(step_index, velocity)] hits from a step string.
+
+    'x' / 'X' / '1' = hit at default velocity.
+    '2'-'9' = hit at velocity = round(digit/9 * 127) — '9' loudest, '2' quietest.
+    '.' / '-' / '_' / '0' / ' ' = rest.
+    Any other character is rejected so typos don't silently disappear.
+    """
+    hits: list[tuple[int, int]] = []
+    for i, ch in enumerate(row):
+        if ch in _STEP_REST_CHARS:
+            continue
+        if ch in ("x", "X", "1"):
+            hits.append((i, default_velocity))
+        elif ch.isdigit():
+            v = max(1, min(127, round(int(ch) / 9 * 127)))
+            hits.append((i, v))
+        else:
+            raise ValueError(
+                f"unrecognized step character {ch!r} at index {i} in row {row!r}"
+            )
+    return hits
+
+
+def create_drum_pattern(
+    track: int,
+    clip_slot: int,
+    pattern: dict,
+    bars: float = 1.0,
+    step_duration: float = 0.25,
+    velocity: int = 100,
+    name: str | None = None,
+) -> dict:
+    """Write a drum pattern from step strings into a MIDI clip.
+
+    pattern: dict mapping a voice to a step string. Keys may be:
+        - a drum-map name: 'kick', 'snare', 'hat', 'closed_hat', 'oh', 'clap',
+          'tom_low', 'tom_mid', 'tom_high', 'crash', 'ride', ... (see
+          theory.drums.DEFAULT_DRUM_MAP).
+        - a note name: 'C1', 'D1', 'F#1'.
+        - a raw MIDI int: 36.
+    Step string characters: 'x'/'X'/'1' = hit, '.'/'-'/'_'/'0'/' ' = rest,
+        '2'-'9' = hit at velocity scaled from the digit ('9' loudest). Rows may
+        have different lengths — each row's timing is computed from its own
+        length so you can mix 16ths and triplets.
+    bars: total length of the clip in bars (4/4 assumed: 1 bar = 4 beats).
+    step_duration: how long each note rings in beats. Default 0.25 (a 16th).
+    velocity: default velocity for plain 'x' hits.
+    name: optional clip name.
+    """
+    if not pattern:
+        raise ValueError("pattern must contain at least one row")
+    if bars <= 0:
+        raise ValueError(f"bars must be > 0, got {bars}")
+    if step_duration <= 0:
+        raise ValueError(f"step_duration must be > 0, got {step_duration}")
+    if not (1 <= int(velocity) <= 127):
+        raise ValueError(f"velocity must be in [1, 127], got {velocity}")
+
+    clip_length = float(bars) * 4.0
+    notes: list[dict] = []
+    resolved: list[dict] = []
+    for voice_key, row in pattern.items():
+        if not isinstance(row, str):
+            raise ValueError(
+                f"pattern[{voice_key!r}] must be a step string, got {type(row).__name__}"
+            )
+        if not row:
+            continue
+        pitch = _resolve_drum_voice(voice_key)
+        steps_per_bar = len(row) / float(bars)
+        beat_per_step = 4.0 / steps_per_bar
+        hits = _parse_step_string(row, int(velocity))
+        for step_idx, v in hits:
+            start = step_idx * beat_per_step
+            if start >= clip_length:
+                break
+            notes.append({
+                "pitch": pitch,
+                "start": start,
+                "duration": float(step_duration),
+                "velocity": v,
+            })
+        resolved.append({
+            "voice": voice_key,
+            "pitch": pitch,
+            "steps": len(row),
+            "hits": len(hits),
+        })
+
+    osc = get_client()
+    osc.send("/live/clip_slot/create_clip", int(track), int(clip_slot), clip_length)
+    flat: list = []
+    for n in notes:
+        flat.extend([int(n["pitch"]), float(n["start"]), float(n["duration"]),
+                     int(n["velocity"]), 0])
+    if flat:
+        osc.send("/live/clip/add/notes", int(track), int(clip_slot), *flat)
+    if name:
+        osc.send("/live/clip/set/name", int(track), int(clip_slot), str(name))
+
+    return {
+        "track": int(track),
+        "clip_slot": int(clip_slot),
+        "length_beats": clip_length,
+        "voices": resolved,
+        "note_count": len(notes),
+    }
 
 
 def capture_midi() -> dict:
